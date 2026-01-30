@@ -28,7 +28,7 @@ export interface BookingRecord {
   fullName: string;
   school: string;
   phone: string;
-  totalShirts: number;
+  total: number; // เปลี่ยนจาก totalShirts เป็น total เพื่อให้ตรงกับ Script
   sizes: ShirtQuantities;
   paymentStatus: string;
   shippingStatus: string;

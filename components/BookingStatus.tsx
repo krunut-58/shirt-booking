@@ -8,19 +8,24 @@ export const BookingStatus: React.FC = () => {
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchBookings();
+      console.log("Fetched Data:", data); // สำหรับ Debug ดูใน Console
+      setBookings(data);
+    } catch (err: any) {
+      console.error("Failed to load bookings", err);
+      setError("ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการตั้งค่า Google Script");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchBookings();
-        setBookings(data);
-      } catch (error) {
-        console.error("Failed to load bookings", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     loadData();
   }, []);
 
@@ -54,7 +59,18 @@ export const BookingStatus: React.FC = () => {
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
           <div>
-            <h2 className="text-xl font-bold text-gray-800">ตรวจสอบข้อมูลการจอง</h2>
+            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+              ตรวจสอบข้อมูลการจอง
+              <button 
+                onClick={loadData}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                title="รีเฟรชข้อมูล"
+              >
+                <svg className={`w-4 h-4 text-gray-400 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </h2>
             <p className="text-sm text-gray-500">ค้นหาด้วยชื่อ-นามสกุล หรือชื่อโรงเรียน</p>
           </div>
           <div className="relative w-full md:w-80">
@@ -68,6 +84,12 @@ export const BookingStatus: React.FC = () => {
             />
           </div>
         </div>
+
+        {error && (
+          <div className="p-4 mb-6 bg-red-50 text-red-600 rounded-xl text-center text-sm font-medium border border-red-100">
+            {error}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -101,7 +123,9 @@ export const BookingStatus: React.FC = () => {
                           {renderSizeDetails(b.sizes)}
                         </div>
                       </td>
-                      <td className="px-6 py-5 whitespace-nowrap text-center font-bold text-gray-700">{b.totalShirts}</td>
+                      <td className="px-6 py-5 whitespace-nowrap text-center font-bold text-gray-700">
+                        {b.total || 0}
+                      </td>
                       <td className="px-6 py-5 whitespace-nowrap">
                         <StatusBadge type="payment" status={b.paymentStatus} />
                       </td>
@@ -127,7 +151,7 @@ export const BookingStatus: React.FC = () => {
 };
 
 const StatusBadge: React.FC<{ type: 'payment' | 'shipping', status: string }> = ({ type, status }) => {
-  const isComplete = (status || "").includes('เรียบร้อย') || (status || "").includes('ได้รับ');
+  const isComplete = (status || "").includes('เรียบร้อย') || (status || "").includes('ได้รับ') || (status || "").includes('ส่งแล้ว');
   
   const colors = isComplete 
     ? 'bg-green-100 text-green-700 border-green-200' 
@@ -135,7 +159,7 @@ const StatusBadge: React.FC<{ type: 'payment' | 'shipping', status: string }> = 
 
   return (
     <div className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold border ${colors}`}>
-      <span className="w-1.5 h-1.5 rounded-full bg-current mr-2 animate-pulse"></span>
+      <span className={`w-1.5 h-1.5 rounded-full bg-current mr-2 ${!isComplete ? 'animate-pulse' : ''}`}></span>
       {status || (type === 'payment' ? 'รอตรวจสอบ' : 'รอจัดส่ง')}
     </div>
   );
